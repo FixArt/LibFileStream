@@ -324,6 +324,12 @@ struct fileStream
             }
         }
 
+        ///Close file stream automatically during destruction.
+        ~fileStream()
+        {
+            close();
+        }
+
         ///Reopens file at the same path but in different mode.
         void reopen(unsigned short openingMode, bool binaryMode = false, int errorCode = defaultErrorCode)
         {

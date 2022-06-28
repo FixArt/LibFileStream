@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cerrno>
+//#include <iostream>
 
 /**Structure representing file stream.
 *Places own data safety at first place.
@@ -97,10 +98,11 @@ struct fileStream
         }
 
         ///Returns copy of string.
-        char* stringCopy(const char* string)
+        template<class type>
+        type* stringCopy(const type* string)
         {
-            char* newString = new char[stringLength(string) + 1];
-            copyList(string, newString, stringLength(string) + 1);
+            type* newString = new type[stringLength(string) + 1];
+            copyList<type>(string, newString, stringLength(string) + 1);
             return newString;
         }
 
@@ -121,7 +123,7 @@ struct fileStream
 
         int extractError()
         {
-            if(ferror(file) != 0)
+            if(isStreamOpen() and (ferror(file) != 0))
             {
                 return ferror(file);
             }
@@ -133,6 +135,7 @@ struct fileStream
             {
                 return privateError;
             }
+            return 0;
         }
 
         ///Updates End Of File information to insure, that clearerr can't remove end of file data.
@@ -144,7 +147,7 @@ struct fileStream
         ///Checks whenever stream is open.
         bool isStreamOpen()
         {
-            return file != nullptr and privateMode == 0;
+            return file != nullptr and privateMode != 0;
         }
 
         ///Checks whenever stream is valid for reading.
@@ -212,8 +215,8 @@ struct fileStream
         ///Point where file currently read or written.
         const unsigned long long &point = filePointer;
 
-        ///Securely stored unchangeable path to current file.
-        const path_type* const path = privatePath;
+        ///Securely stored uneditable path to current file.
+        const path_type* const &path = privatePath;
 
         ///Checks whenever it is end of file.
         const bool &end = privateEndOfFile;
@@ -304,7 +307,7 @@ struct fileStream
             }
             privateBinaryMode = binaryMode;
             privateMode = openingMode;
-            privatePath = stringCopy(choosenPath);
+            privatePath = stringCopy<path_type>(choosenPath);
             updateEndOfFile();
         }
 
@@ -336,7 +339,16 @@ struct fileStream
             close();
         }
 
-        ///Reopen file at the same path but in different mode.
+        /**Reopen file at the same path but in different mode.
+        *Opening mode supports one of the 6 values. Those are:
+        *1 - read only;
+        *2 - write only;
+        *3 - append only;
+        *4 - read and write, but file should exist;
+        *5 - read and write, but file will be created;
+        *6 - read and append.
+        *To choose whenever or not use binary mode use third bool parameter.
+        */
         void reopen(unsigned short openingMode, bool binaryMode = false, int errorCode = defaultErrorCode)
         {
             if(!isStreamOpen())
@@ -344,15 +356,16 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             switch(openingMode)
             {
                 default: privateError = errorCode; return;
-                case 1: file = freopen(path, (binaryMode)?("rb"):("r"), file); break;
-                case 2: file = freopen(path, (binaryMode)?("wb"):("w"), file); break;
-                case 3: file = freopen(path, (binaryMode)?("ab"):("a"), file); break;
-                case 4: file = freopen(path, (binaryMode)?("rb+"):("r+"), file); break;
-                case 5: file = freopen(path, (binaryMode)?("wb+"):("w+"), file); break;
-                case 6: file = freopen(path, (binaryMode)?("ab+"):("a+"), file); break;
+                case 1: file = freopen(privatePath, (binaryMode)?("rb"):("r"), file); break;
+                case 2: file = freopen(privatePath, (binaryMode)?("wb"):("w"), file); break;
+                case 3: file = freopen(privatePath, (binaryMode)?("ab"):("a"), file); break;
+                case 4: file = freopen(privatePath, (binaryMode)?("rb+"):("r+"), file); break;
+                case 5: file = freopen(privatePath, (binaryMode)?("wb+"):("w+"), file); break;
+                case 6: file = freopen(privatePath, (binaryMode)?("ab+"):("a+"), file); break;
             }
             if(file == nullptr or isError())
             {
@@ -376,6 +389,7 @@ struct fileStream
                 privateError = errorCode;
                 return '\0';
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             if(privateBinaryMode)
             {
                 type data = *readBlock<type>(1);
@@ -416,8 +430,9 @@ struct fileStream
                 privateError = errorCode;
                 return "";
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             type* line = nullptr;
-            unsigned long long size = 0;
+            unsigned long long stringSize = 0;
             for(unsigned long long i = 0; i < neededSize and !privateEndOfFile; ++i)
             {
                 type checkedCharacter = getCharacter<type>();
@@ -427,10 +442,10 @@ struct fileStream
                     delete[] line;
                     return "";
                 }
-                addToList(line, size, checkedCharacter);
-                ++size;
+                addToList(line, stringSize, checkedCharacter);
+                ++stringSize;
             }
-            addToList(line, size, '\0');
+            addToList(line, stringSize, '\0');
             return line;
         }
 
@@ -446,8 +461,9 @@ struct fileStream
                 privateError = errorCode;
                 return "";
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             type* line = nullptr;
-            unsigned long long size = 0;
+            unsigned long long stringSize = 0;
             while(true)
             {
                 type checkedCharacter = getCharacter<type>();
@@ -459,12 +475,12 @@ struct fileStream
                 }
                 if(checkedCharacter == '\n')
                 {
-                    addToList(line, size, '\0');
-                    //++size; //Variable 'size' is assigned a value that is never used. CppCheck
+                    addToList(line, stringSize, '\0');
+                    //++stringSize; //Variable 'stringSize' is assigned a value that is never used. CppCheck
                     break;
                 }
-                addToList(line, size, checkedCharacter);
-                ++size;
+                addToList(line, stringSize, checkedCharacter);
+                ++stringSize;
             }
             return line;
         }
@@ -481,8 +497,9 @@ struct fileStream
                 privateError = errorCode;
                 return "";
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             type* line = nullptr;
-            unsigned long long size = 0;
+            unsigned long long stringSize = 0;
             while(!privateEndOfFile)
             {
                 type checkedCharacter = getCharacter<type>();
@@ -492,10 +509,10 @@ struct fileStream
                     delete[] line;
                     return "";
                 }
-                addToList(line, size, checkedCharacter);
-                ++size;
+                addToList(line, stringSize, checkedCharacter);
+                ++stringSize;
             }
-            addToList(line, size, '\0');
+            addToList(line, stringSize, '\0');
             return line;
         }
 
@@ -512,6 +529,7 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             if(privateBinaryMode)
             {
                 writeBlock(*character, 1);
@@ -549,6 +567,7 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             int savedError = privateError;
             unsigned long long stringPlace = 0;
             while(string[stringPlace] != '\0')
@@ -576,6 +595,7 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             int savedError = privateError;
             unsigned long long stringPlace = 0;
             while(string[stringPlace] != '\0')
@@ -605,6 +625,7 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             filePointer = 0;
             privateEndOfFile = false;
             rewind(file);
@@ -635,19 +656,21 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
+            int errorCheck = 0;
             switch(from)
             {
                 default: privateError = errorCode; return;
-                case 1: fseek(file, pointer, SEEK_SET); break;
-                case 2: fseek(file, pointer, SEEK_CUR); break;
-                case 3: fseek(file, pointer, SEEK_END); break;
+                case 1: errorCheck = fseek(file, pointer, SEEK_SET); break;
+                case 2: errorCheck = fseek(file, pointer, SEEK_CUR); break;
+                case 3: errorCheck = fseek(file, pointer, SEEK_END); break;
                 #ifdef _GNU_SOURCE
-                case 4: fseek(file, pointer, SEEK_DATA); break;
-                case 5: fseek(file, pointer, SEEK_HOLE); break;
+                case 4: errorCheck = fseek(file, pointer, SEEK_DATA); break;
+                case 5: errorCheck = fseek(file, pointer, SEEK_HOLE); break;
                 #endif
             }
             
-            if(isError())
+            if(errorCheck != 0 or isError())
             {
                 privateError = extractError();
                 clearErrorPointing();
@@ -665,6 +688,7 @@ struct fileStream
                 privateError = errorCode;
                 return 0;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             unsigned long long current = ftell(file);
             fseek(file, 0, SEEK_END);
             unsigned long long returned = ftell(file);
@@ -675,7 +699,7 @@ struct fileStream
                 clearErrorPointing();
                 return 0;
             }
-            return current;
+            return returned;
         }
 
         /**Function which reads in fprintf/fscanf format. Requires pointers to variables, not variables itself.
@@ -691,6 +715,7 @@ struct fileStream
                 privateError = defaultErrorCode;
                 return 0;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             //If format strings can be influenced by an attacker, they can be exploited (CWE-134). Use a constant for the format specification.
             int processedInt = fscanf(file, format, arguments...);
             if(isError())
@@ -731,6 +756,7 @@ struct fileStream
                 privateError = defaultErrorCode;
                 return 0;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             //If format strings can be influenced by an attacker, they can be exploited (CWE-134). Use a constant for the format specification.
             int processedInt = fprintf(file, format, arguments...);
             if(isError())
@@ -770,6 +796,7 @@ struct fileStream
                 privateError = errorCode;
                 return nullptr;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             type* pointer = new type[count];
             unsigned long long result = fread(pointer, sizeof(type), count, file);
             if(isError())
@@ -803,6 +830,7 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
+            clearErrorPointing(); //Ensure that only own reports will be reported.
             unsigned long long result = fwrite(pointer, sizeof(type), count, file);
             if(isError())
             {
@@ -810,7 +838,7 @@ struct fileStream
                 clearErrorPointing();
                 return;
             }
-            if(result == 0)
+            if(result == 0 or result != count)
             {
                 privateError = errorCode;
                 return;

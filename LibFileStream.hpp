@@ -770,6 +770,7 @@ struct fileStream
             {
                 privateError = extractError();
                 clearErrorPointing();
+                delete[] pointer;
                 return nullptr;
             }
             filePointer = ftell(file);
@@ -778,6 +779,7 @@ struct fileStream
             {
                 privateError = extractError();
                 clearErrorPointing();
+                delete[] pointer;
                 return nullptr;
             }
             return pointer;

@@ -103,17 +103,20 @@ struct fileStream
             copyList(string, newString, stringLength(string) + 1);
             return newString;
         }
-        
-        //Clears default error variables to collect new error messages.
-        void clearErrorPointing()
-        {
-            clearerr(file);
-            errno = 0;
-        }
 
         bool isError()
         {
             return (ferror(file) != 0) or (errno != 0);
+        }
+        
+        //Clears default error variables to collect new error messages.
+        void clearErrorPointing()
+        {
+            if(ferror(file) or feof(file))
+            {
+                clearerr(file);
+            }
+            errno = 0;
         }
 
         int extractError()
@@ -218,7 +221,10 @@ struct fileStream
         ///Cleans errors history.
         void clean_error()
         {
-            clearErrorPointing();
+            if(isStreamOpen())
+            {
+                clearErrorPointing();
+            }
             privateError = 0;
         }
 
@@ -236,10 +242,10 @@ struct fileStream
             }
         }
 
-        ///Returns error and clears last error history.
+        ///Returns error and clears last error history. Warning! Function not failsafe, and will crash if unsuitable problems occur.
         int getError()
         {
-            int returned = error;
+            int returned = privateError;
             clean_error();
             return returned;
         }

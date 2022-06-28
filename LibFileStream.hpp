@@ -622,7 +622,7 @@ struct fileStream
         *4 - SEEK_DATA;
         *5 - SEEK_HOLE.
         */
-        void pointTo(unsigned long long pointer, unsigned short from = 1, int errorCode = defaultErrorCode)
+        void pointTo(int pointer, unsigned short from = 1, int errorCode = defaultErrorCode)
         {
             if(privateMode == 3 or !isStreamOpen())
             {

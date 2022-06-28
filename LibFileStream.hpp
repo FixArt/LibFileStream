@@ -10,7 +10,7 @@ template<class path_type = char>
 struct fileStream
 {
     protected:
-        //Secure storage, unaccesible from outside.
+        //Secure storage, inaccessible from outside.
 
         ///File storage.
         FILE* file = nullptr;
@@ -330,7 +330,7 @@ struct fileStream
             close();
         }
 
-        ///Reopens file at the same path but in different mode.
+        ///Reopen file at the same path but in different mode.
         void reopen(unsigned short openingMode, bool binaryMode = false, int errorCode = defaultErrorCode)
         {
             if(!isStreamOpen())
@@ -355,6 +355,7 @@ struct fileStream
             }
             privateBinaryMode = binaryMode;
             privateMode = openingMode;
+            filePointer = 0;
         }
 
         /**Function to read character, which supports binary mode.

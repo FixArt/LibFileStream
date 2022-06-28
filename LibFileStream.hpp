@@ -341,12 +341,12 @@ struct fileStream
             switch(openingMode)
             {
                 default: privateError = errorCode; return;
-                case 1: file = freopen(path, (binaryMode)?("rb"):("r")); break;
-                case 2: file = freopen(path, (binaryMode)?("wb"):("w")); break;
-                case 3: file = freopen(path, (binaryMode)?("ab"):("a")); break;
-                case 4: file = freopen(path, (binaryMode)?("rb+"):("r+")); break;
-                case 5: file = freopen(path, (binaryMode)?("wb+"):("w+")); break;
-                case 6: file = freopen(path, (binaryMode)?("ab+"):("a+")); break;
+                case 1: file = freopen(path, (binaryMode)?("rb"):("r"), file); break;
+                case 2: file = freopen(path, (binaryMode)?("wb"):("w"), file); break;
+                case 3: file = freopen(path, (binaryMode)?("ab"):("a"), file); break;
+                case 4: file = freopen(path, (binaryMode)?("rb+"):("r+"), file); break;
+                case 5: file = freopen(path, (binaryMode)?("wb+"):("w+"), file); break;
+                case 6: file = freopen(path, (binaryMode)?("ab+"):("a+"), file); break;
             }
             if(file == nullptr or isError())
             {

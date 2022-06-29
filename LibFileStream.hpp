@@ -39,7 +39,7 @@ struct fileStream
         //Functions from other libraries.
 
         //Checks whenever it contains zero given its real or expected size.
-        bool isStringZeroTerminated(const char* string, unsigned long long expectedSize = 0)
+        static bool isStringZeroTerminated(const char* string, unsigned long long expectedSize = 0)
         {
             for(unsigned long long i = 0; i < expectedSize; ++i)
             {
@@ -52,7 +52,7 @@ struct fileStream
         }
 
         //Protects from "(Function name) doesn't handle strings that are not '\0'-terminated; if given one it may perform an over-read (it could cause a crash if unprotected) (CWE-126)."
-        void ensureZeroTerminated(char* string, unsigned long long expectedSize = 0)
+        static void ensureZeroTerminated(char* string, unsigned long long expectedSize = 0)
         {
             if(not isStringZeroTerminated(string, expectedSize))
             {
@@ -62,7 +62,7 @@ struct fileStream
 
         ///Copy list into another list.
         template<class type>
-        void copyList(const type copiedlist[], type list[], unsigned long long size)
+        static void copyList(const type copiedlist[], type list[], unsigned long long size)
         {
             for(unsigned long long i = 0; i < size; ++i)
             {
@@ -72,7 +72,7 @@ struct fileStream
 
         ///Adds element to list. Returns list with new element.
         template<class type>
-        void addToList(type* &list, unsigned long long size, type newElement)
+        static void addToList(type* &list, unsigned long long size, type newElement)
         {
             type* extendedList = new type[size + 1];
             for(unsigned long long i = 0; i < size; ++i)
@@ -86,7 +86,7 @@ struct fileStream
 
         ///Returns length of the string.
         template<class type>
-        unsigned long long stringLength(const type* string)
+        static unsigned long long stringLength(const type* string)
         {
             //for(unsigned long long i = 0; string[i] != '\0'; ++i)
             unsigned long long i = 0;
@@ -187,7 +187,7 @@ struct fileStream
         }
 
         //Checks whenever strings are same.
-        bool isStringsEqual(const char* string1, const char* string2)
+        static bool isStringsEqual(const char* string1, const char* string2)
         {
             if(stringLength(string1) != stringLength(string2))
             {
@@ -196,8 +196,14 @@ struct fileStream
             return equalList(string1, string2, stringLength(string2));
         }
 
+        ///Disallow unauthorized creation of file stream copies.
+        fileStream<path_type>( const fileStream<path_type>&);
+
     public:
         //Data, available to anything outside structure.
+
+        ///Allow sending file stream in correct way.
+        fileStream<path_type>() = default;
 
         ///Default error code of all functions.
         const static unsigned short defaultErrorCode = 1;
@@ -318,6 +324,7 @@ struct fileStream
         {
             if(file != nullptr)
             {
+                //rewind(file);
                 fclose(file);
                 file = nullptr;
             }

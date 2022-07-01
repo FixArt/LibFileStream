@@ -186,14 +186,31 @@ struct fileStream
             return file != nullptr and (privateMode >= 2 and privateMode <= 6) and privateBinaryMode;
         }
 
+        //Checks whenever two lists are equal.
+        template<class type>
+        static bool equalList(const type list1[], const type list2[], unsigned long long size)
+        {
+            bool isEqual = true;
+            for(unsigned long long i = 0; i < size; ++i)
+            {
+                if(list1[i] != list2[i])
+                {
+                    isEqual = false;
+                    break;
+                }
+            }
+            return isEqual;
+        }
+
         //Checks whenever strings are same.
-        static bool isStringsEqual(const char* string1, const char* string2)
+        template<class type>
+        static bool isStringsEqual(const type* string1, const type* string2)
         {
             if(stringLength(string1) != stringLength(string2))
             {
                 return false;
             }
-            return equalList(string1, string2, stringLength(string2));
+            return equalList<type>(string1, string2, stringLength(string2));
         }
 
         ///Disallow unauthorized creation of file stream copies.

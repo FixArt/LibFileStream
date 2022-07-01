@@ -145,43 +145,43 @@ struct fileStream
         }
 
         ///Checks whenever stream is open.
-        bool isStreamOpen()
+        bool isStreamOpen() const
         {
             return file != nullptr and privateMode != 0;
         }
 
         ///Checks whenever stream is valid for reading.
-        bool isValidForReading()
+        bool isValidForReading() const
         {
             return file != nullptr and !privateEndOfFile and (privateMode == 1 or (privateMode >= 4 and privateMode <= 6));
         }
 
         //Checks whenever stream is valid for writing.
-        bool isValidForWriting()
+        bool isValidForWriting() const
         {
             return file != nullptr and (privateMode >= 2 and privateMode <= 6);
         }
 
         ///Checks whenever stream is valid for reading.
-        bool isValidForTextReading()
+        bool isValidForTextReading() const
         {
             return file != nullptr and !privateEndOfFile and (privateMode == 1 or (privateMode >= 4 and privateMode <= 6)) and !privateBinaryMode;
         }
 
         //Checks whenever stream is valid for writing.
-        bool isValidForTextWriting()
+        bool isValidForTextWriting() const
         {
             return file != nullptr and (privateMode >= 2 and privateMode <= 6) and !privateBinaryMode;
         }
 
         ///Checks whenever stream is valid for binary reading.
-        bool isValidForBinaryReading()
+        bool isValidForBinaryReading() const
         {
             return file != nullptr and !privateEndOfFile and (privateMode == 1 or (privateMode >= 4 and privateMode <= 6)) and privateBinaryMode;
         }
 
         ///Checks whenever stream is valid for binary writing.
-        bool isValidForBinaryWriting()
+        bool isValidForBinaryWriting() const
         {
             return file != nullptr and (privateMode >= 2 and privateMode <= 6) and privateBinaryMode;
         }

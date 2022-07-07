@@ -734,7 +734,8 @@ struct fileStream
         template<class type, class... Arguments>
         int getByFormat(const type* const format, Arguments*... arguments)
         {
-            if(!isValidForTextReading())
+            //if(!isValidForTextReading())
+            if(!isValidForReading())
             {
                 privateError = defaultErrorCode;
                 return 0;
@@ -775,7 +776,8 @@ struct fileStream
         template<class type, class... Arguments>
         int writeByFormat(const type* const format, Arguments... arguments)
         {
-            if(!isValidForTextWriting())
+            //if(!isValidForTextWriting())
+            if(!isValidForWriting())
             {
                 privateError = defaultErrorCode;
                 return 0;

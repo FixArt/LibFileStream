@@ -249,7 +249,7 @@ struct fileStream
         const bool &end = privateEndOfFile;
 
         ///Cleans errors history.
-        void clean_error()
+        void cleanError()
         {
             if(isStreamOpen())
             {
@@ -276,7 +276,7 @@ struct fileStream
         int getError()
         {
             int returned = privateError;
-            clean_error();
+            cleanError();
             return returned;
         }
 

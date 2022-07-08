@@ -317,7 +317,7 @@ struct fileStream
                 privateError = ENAMETOOLONG;
                 return;
             }
-            if(!realpath(choosenPath, NULL))
+            if((openingMode == 1 or openingMode == 4) and !realpath(choosenPath, NULL))
             {
                 //Path nonexistant.
                 //privateError = ENOENT;

@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <cerrno>
+#include <climits>
+//#include <sys/param.h>
 //#include <iostream>
 
 /**Structure representing file stream.
@@ -39,7 +41,8 @@ struct fileStream
         //Functions from other libraries.
 
         //Checks whenever it contains zero given its real or expected size.
-        static bool isStringZeroTerminated(const char* string, unsigned long long expectedSize = 0)
+        template<class type>
+        static bool isStringZeroTerminated(const type* string, unsigned long long expectedSize = 0)
         {
             for(unsigned long long i = 0; i < expectedSize; ++i)
             {
@@ -52,9 +55,10 @@ struct fileStream
         }
 
         //Protects from "(Function name) doesn't handle strings that are not '\0'-terminated; if given one it may perform an over-read (it could cause a crash if unprotected) (CWE-126)."
-        static void ensureZeroTerminated(char* string, unsigned long long expectedSize = 0)
+        template<class type>
+        static void ensureZeroTerminated(type* string, unsigned long long expectedSize = 0)
         {
-            if(not isStringZeroTerminated(string, expectedSize))
+            if(not isStringZeroTerminated<type>(string, expectedSize))
             {
                 string[expectedSize - 1] = '\0';
             }
@@ -306,6 +310,20 @@ struct fileStream
         */
         void open(const path_type* const choosenPath, unsigned short openingMode, bool binaryMode = false, int errorCode = defaultErrorCode)
         {
+            //ensureZeroTerminated(choosenPath, PATH_MAX); ///Since no legal path bigger than this constant exists, we can succesfully cut any path bigger than this.
+            if(!isStringZeroTerminated(choosenPath, PATH_MAX / (sizeof(path_type) * 8)))
+            {
+                //Either file too long or this isn't valid string.
+                privateError = ENAMETOOLONG;
+                return;
+            }
+            if(!realpath(choosenPath, NULL))
+            {
+                //Path nonexistant.
+                //privateError = ENOENT;
+                privateError = ENOTDIR;
+                return;
+            }
             if(choosenPath == nullptr or isStreamOpen())
             {
                 //Ensure nothing will be broken.

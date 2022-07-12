@@ -258,6 +258,20 @@ struct fileStream
             privateError = 0;
         }
 
+        ///Cleans error and returns true if error is same as given error.
+        bool ignoreError(const int &ignoredError)
+        {
+            if(privateError == ignoredError)
+            {
+                privateError = 0;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         ///Function to send error to another function.
         void handle(bool(handlingFunction)(const unsigned short &))
         {
@@ -835,6 +849,11 @@ struct fileStream
         template<class type>
         type* readBlock(unsigned long long count, unsigned long long errorCode = defaultErrorCode)
         {
+            if(count == 0)
+            {
+                privateError = ENOTSUP; //How I should allocate zero size array?
+                return nullptr;
+            }
             if(!isValidForBinaryReading())
             {
                 privateError = errorCode;

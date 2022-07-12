@@ -847,7 +847,7 @@ struct fileStream
         *fileStreamName.readBlock<type of read value>(number of elements);
         */
         template<class type>
-        type* readBlock(const unsigned long long &count, unsigned long long errorCode = defaultErrorCode)
+        type* readBlock(unsigned long long count, unsigned long long errorCode = defaultErrorCode)
         {
             if(count == 0)
             {
@@ -883,38 +883,6 @@ struct fileStream
 
         /**Function which reads in binary.
         *Syntax is following:
-        *fileStreamName.readBlock<type of read value>();
-        */
-        template<class type>
-        type readBlock(unsigned long long errorCode = defaultErrorCode)
-        {
-            if(!isValidForBinaryReading())
-            {
-                privateError = errorCode;
-                return nullptr;
-            }
-            clearErrorPointing(); //Ensure that only own reports will be reported.
-            type variable = 0;
-            unsigned long long result = fread(&variable, sizeof(type), 1, file);
-            if(isError())
-            {
-                privateError = extractError();
-                clearErrorPointing();
-                return nullptr;
-            }
-            filePointer = ftell(file);
-            updateEndOfFile();
-            if(result == 0 or isError())
-            {
-                privateError = extractError();
-                clearErrorPointing();
-                return nullptr;
-            }
-            return variable;
-        }
-
-        /**Function which reads in binary.
-        *Syntax is following:
         *fileStreamName.writeBlock<type of written value, unnecessary>(pointer to written element, number of elements);
         */
         template<class type>
@@ -934,41 +902,6 @@ struct fileStream
                 return;
             }
             if(result == 0 or result != count)
-            {
-                privateError = errorCode;
-                return;
-            }
-            filePointer = ftell(file);
-            if(isError())
-            {
-                privateError = extractError();
-                clearErrorPointing();
-                return;
-            }
-            updateEndOfFile();
-        }
-
-        /**Function which reads in binary.
-        *Syntax is following:
-        *fileStreamName.writeBlock<type of written value, unnecessary>(written element);
-        */
-        template<class type>
-        void writeBlock(type pointer, unsigned long long errorCode = defaultErrorCode)
-        {
-            if(!isValidForBinaryWriting())
-            {
-                privateError = errorCode;
-                return;
-            }
-            clearErrorPointing(); //Ensure that only own reports will be reported.
-            unsigned long long result = fwrite(&pointer, sizeof(type), 1, file);
-            if(isError())
-            {
-                privateError = extractError();
-                clearErrorPointing();
-                return;
-            }
-            if(result != 1)
             {
                 privateError = errorCode;
                 return;

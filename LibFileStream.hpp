@@ -448,7 +448,7 @@ struct fileStream
             clearErrorPointing(); //Ensure that only own reports will be reported.
             if(privateBinaryMode)
             {
-                type data = *readBlock<type>(1);
+                type data = readVariable<type>();
                 privateError = extractError();
                 if(isError())
                 {
@@ -588,7 +588,7 @@ struct fileStream
             clearErrorPointing(); //Ensure that only own reports will be reported.
             if(privateBinaryMode)
             {
-                writeBlock(*character, 1);
+                writeVariable(character);
                 if(isError())
                 {
                     privateError = extractError();
@@ -953,7 +953,7 @@ struct fileStream
         *fileStreamName.writeVariable<type of written value, unnecessary>(written element);
         */
         template<class type>
-        void writeVariable(type pointer, unsigned long long errorCode = defaultErrorCode)
+        void writeVariable(const type &variable, unsigned long long errorCode = defaultErrorCode)
         {
             if(!isValidForBinaryWriting())
             {
@@ -961,7 +961,7 @@ struct fileStream
                 return;
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            unsigned long long result = fwrite(&pointer, sizeof(type), 1, file);
+            unsigned long long result = fwrite(&variable, sizeof(type), 1, file);
             if(isError())
             {
                 privateError = extractError();

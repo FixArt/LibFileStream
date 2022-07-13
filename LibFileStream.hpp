@@ -7,7 +7,7 @@
 /**Structure representing file stream.
 *Places own data safety at first place.
 *Use open to open file and close to close it.
-*Every file stream has defined constants mode, binary, path, end, point, error.
+*Every file stream has defined constants mode, binary, path, end, error.
 */
 template<class path_type = char>
 struct fileStream
@@ -26,9 +26,6 @@ struct fileStream
 
         ///Error storage.
         int privateError = 0;
-
-        ///Pointer storage.
-        unsigned long long filePointer = 0;
 
         ///Current path storage.
         path_type* privatePath = nullptr;
@@ -145,6 +142,10 @@ struct fileStream
         ///Updates End Of File information to insure, that clearerr can't remove end of file data.
         void updateEndOfFile()
         {
+            if(point() >= size())
+            {
+                privateEndOfFile = true;
+            }
             privateEndOfFile = (privateEndOfFile)?(true):(feof(file));
         }
 
@@ -239,9 +240,6 @@ struct fileStream
         ///Last error storage. Uneditable from outside.
         const int &error = privateError;
 
-        ///Point where file currently read or written.
-        const unsigned long long &point = filePointer;
-
         ///Securely stored uneditable path to current file.
         const path_type* const &path = privatePath;
 
@@ -286,6 +284,21 @@ struct fileStream
             }
         }
 
+        ///Placement in file.
+        unsigned long long point(int errorCode = defaultErrorCode)
+        {
+            if(!isStreamOpen())
+            {
+                privateError = errorCode;
+                return 0;
+            }
+            if(mode == 3)
+            {
+                return 0;
+            }
+            return ftell(file);
+        }
+
         ///Returns error and clears last error history. Warning! Function not failsafe, and will crash if unsuitable problems occur.
         int getError()
         {
@@ -300,7 +313,6 @@ struct fileStream
         {
             privateMode = 0;
             privateBinaryMode = false;
-            filePointer = 0;
             if(privatePath != nullptr)
             {
                 delete[] privatePath;
@@ -380,7 +392,6 @@ struct fileStream
             privateMode = 0;
             privateBinaryMode = false;
             //privateError = 0; //No need to clear last error log.
-            filePointer = 0;
             privateEndOfFile = false;
             if(privatePath != nullptr)
             {
@@ -430,7 +441,6 @@ struct fileStream
             }
             privateBinaryMode = binaryMode;
             privateMode = openingMode;
-            filePointer = 0;
         }
 
         /**Function to read character, which supports binary mode.
@@ -461,7 +471,6 @@ struct fileStream
             }
             else
             {
-                ++filePointer;
                 type character = fgetc(file);
                 if(isError())
                 {
@@ -598,7 +607,6 @@ struct fileStream
             }
             else
             {
-                ++filePointer;
                 fputc(character, file);
                 if(isError())
                 {
@@ -682,7 +690,6 @@ struct fileStream
                 return;
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            filePointer = 0;
             privateEndOfFile = false;
             rewind(file);
             if(isError())
@@ -732,8 +739,8 @@ struct fileStream
                 clearErrorPointing();
                 return;
             }
+            privateEndOfFile = false;
             updateEndOfFile();
-            filePointer = ftell(file);
         }
 
         ///Returns size of a file.
@@ -781,7 +788,6 @@ struct fileStream
                 clearErrorPointing();
                 return privateError;
             }
-            filePointer = ftell(file);
             updateEndOfFile();
             if(processedInt < 0)
             {
@@ -823,7 +829,6 @@ struct fileStream
                 clearErrorPointing();
                 return privateError;
             }
-            filePointer = ftell(file);
             updateEndOfFile();
             if(processedInt < 0)
             {
@@ -869,7 +874,6 @@ struct fileStream
                 delete[] pointer;
                 return nullptr;
             }
-            filePointer = ftell(file);
             updateEndOfFile();
             if(result == 0 or isError())
             {
@@ -891,24 +895,23 @@ struct fileStream
             if(!isValidForBinaryReading())
             {
                 privateError = errorCode;
-                return nullptr;
+                return 0;
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            type variable = 0;
+            type variable;
             unsigned long long result = fread(&variable, sizeof(type), 1, file);
             if(isError())
             {
                 privateError = extractError();
                 clearErrorPointing();
-                return nullptr;
+                return 0;
             }
-            filePointer = ftell(file);
             updateEndOfFile();
             if(result == 0 or isError())
             {
                 privateError = extractError();
                 clearErrorPointing();
-                return nullptr;
+                return 0;
             }
             return variable;
         }
@@ -938,7 +941,6 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
-            filePointer = ftell(file);
             if(isError())
             {
                 privateError = extractError();
@@ -973,7 +975,6 @@ struct fileStream
                 privateError = errorCode;
                 return;
             }
-            filePointer = ftell(file);
             if(isError())
             {
                 privateError = extractError();

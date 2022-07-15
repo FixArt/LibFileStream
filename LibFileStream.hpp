@@ -985,7 +985,7 @@ struct fileStream
         }
 
         ///Compare two file streams.
-        inline bool operator==(const fileStream& file)
+        inline bool operator==(const fileStream& file) const
         {
             return (isStringsEqual(file.path, path) and (file.mode == mode) and (file.binary == binary));
         }
@@ -994,11 +994,11 @@ struct fileStream
         template<class type>
         fileStream<type> operator=(const fileStream<type>& file)
         {
-            fileStream<type> newStream;
+            close();
             if(file.path != nullptr and file.mode != 0)
             {
-                newStream.open(file.path, file.mode, file.binary);
+                open(file.path, file.mode, file.binary);
             }
-            return newStream;
+            return *this;
         }
 };

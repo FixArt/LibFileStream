@@ -985,7 +985,6 @@ struct fileStream
         }
 
         ///Compare two file streams.
-        template<class type>
         inline bool operator==(const fileStream& file)
         {
             return (isStringsEqual(file.path, path) and (file.mode == mode) and (file.binary == binary));

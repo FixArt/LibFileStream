@@ -343,13 +343,13 @@ struct fileStream
                 privateError = ENAMETOOLONG;
                 return;
             }
-            if((openingMode == 1 or openingMode == 4) and !realpath(choosenPath, NULL))
-            {
-                //Path nonexistant.
-                //privateError = ENOENT;
-                privateError = ENOTDIR;
-                return;
-            }
+            // if((openingMode == 1 or openingMode == 4) and !realpath(choosenPath, NULL))
+            // {
+            //     //Path nonexistant.
+            //     //privateError = ENOENT;
+            //     privateError = ENOTDIR;
+            //     return;
+            // }
             if(choosenPath == nullptr or isStreamOpen())
             {
                 //Ensure nothing will be broken.
@@ -626,7 +626,7 @@ struct fileStream
         template<class type>
         void writeString(const type* string, unsigned long long expectedSize = 0, int errorCode = defaultErrorCode)
         {
-            if(!isValidForWriting() or !isStringZeroTerminated(string, expectedSize))
+            if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
                 privateError = errorCode;
                 return;
@@ -654,7 +654,7 @@ struct fileStream
         template<class type>
         void writeLine(const type* string, unsigned long long expectedSize = 0, int errorCode = defaultErrorCode)
         {
-            if(!isValidForWriting() or !isStringZeroTerminated(string, expectedSize))
+            if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
                 privateError = errorCode;
                 return;

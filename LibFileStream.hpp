@@ -4,11 +4,12 @@
 //#include <sys/param.h>
 //#include <iostream>
 
-/**Structure representing file stream.
-*Places own data safety at first place.
-*Use open to open file and close to close it.
-*Every file stream has defined constants mode, binary, path, end, error.
-*/
+/**
+ * Structure representing file stream.
+ * Places own data safety at first place.
+ * Use open to open file and close to close it.
+ * Every file stream has defined constants mode, binary, path, end, error.
+ */
 template<class path_type = char>
 struct fileStream
 {
@@ -39,9 +40,9 @@ struct fileStream
 
         //Checks whenever it contains zero given its real or expected size.
         template<class type>
-        static bool isStringZeroTerminated(const type* string, unsigned long long expectedSize = 0)
+        static bool isStringZeroTerminated(const type* string, size_t expectedSize = 0)
         {
-            for(unsigned long long i = 0; i < expectedSize; ++i)
+            for(size_t i = 0; i < expectedSize; ++i)
             {
                 if(string[i] == '\0')
                 {
@@ -53,7 +54,7 @@ struct fileStream
 
         //Protects from "(Function name) doesn't handle strings that are not '\0'-terminated; if given one it may perform an over-read (it could cause a crash if unprotected) (CWE-126)."
         template<class type>
-        static void ensureZeroTerminated(type* string, unsigned long long expectedSize = 0)
+        static void ensureZeroTerminated(type* string, size_t expectedSize = 0)
         {
             if(not isStringZeroTerminated<type>(string, expectedSize))
             {
@@ -63,9 +64,9 @@ struct fileStream
 
         ///Copy list into another list.
         template<class type>
-        static void copyList(const type copiedlist[], type list[], unsigned long long size)
+        static void copyList(const type copiedlist[], type list[], size_t size)
         {
-            for(unsigned long long i = 0; i < size; ++i)
+            for(size_t i = 0; i < size; ++i)
             {
                 list[i] = copiedlist[i];
             }
@@ -73,10 +74,10 @@ struct fileStream
 
         ///Adds element to list. Returns list with new element.
         template<class type>
-        static void addToList(type* &list, unsigned long long size, type newElement)
+        static void addToList(type* &list, size_t size, type newElement)
         {
             type* extendedList = new type[size + 1];
-            for(unsigned long long i = 0; i < size; ++i)
+            for(size_t i = 0; i < size; ++i)
             {
                 extendedList[i] = list[i];
             }
@@ -87,10 +88,10 @@ struct fileStream
 
         ///Returns length of the string.
         template<class type>
-        static unsigned long long stringLength(const type* string)
+        static size_t stringLength(const type* string)
         {
-            //for(unsigned long long i = 0; string[i] != '\0'; ++i)
-            unsigned long long i = 0;
+            //for(size_t i = 0; string[i] != '\0'; ++i)
+            size_t i = 0;
             while(string[i] != '\0')
             {
                 ++i;
@@ -193,10 +194,10 @@ struct fileStream
 
         //Checks whenever two lists are equal.
         template<class type>
-        static bool equalList(const type list1[], const type list2[], unsigned long long size)
+        static bool equalList(const type list1[], const type list2[], size_t size)
         {
             bool isEqual = true;
-            for(unsigned long long i = 0; i < size; ++i)
+            for(size_t i = 0; i < size; ++i)
             {
                 if(list1[i] != list2[i])
                 {
@@ -285,7 +286,7 @@ struct fileStream
         }
 
         ///Placement in file.
-        unsigned long long point(int errorCode = defaultErrorCode)
+        size_t point(int errorCode = defaultErrorCode)
         {
             if(!isStreamOpen())
             {
@@ -488,7 +489,7 @@ struct fileStream
         *fileStreamName.getString<type>();
         */
         template<class type = path_type>
-        type* getString(unsigned long long neededSize, int errorCode = defaultErrorCode)
+        type* getString(size_t neededSize, int errorCode = defaultErrorCode)
         {
             if(!isValidForReading())
             {
@@ -497,8 +498,8 @@ struct fileStream
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
             type* line = nullptr;
-            unsigned long long stringSize = 0;
-            for(unsigned long long i = 0; i < neededSize and !privateEndOfFile; ++i)
+            size_t stringSize = 0;
+            for(size_t i = 0; i < neededSize and !privateEndOfFile; ++i)
             {
                 type checkedCharacter = getCharacter<type>();
                 if(checkedCharacter == '\0')
@@ -528,7 +529,7 @@ struct fileStream
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
             type* line = nullptr;
-            unsigned long long stringSize = 0;
+            size_t stringSize = 0;
             while(true)
             {
                 type checkedCharacter = getCharacter<type>();
@@ -564,7 +565,7 @@ struct fileStream
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
             type* line = nullptr;
-            unsigned long long stringSize = 0;
+            size_t stringSize = 0;
             while(!privateEndOfFile)
             {
                 type checkedCharacter = getCharacter<type>();
@@ -624,7 +625,7 @@ struct fileStream
         *fileStreamName.writeString<type>(string to add, expected size(unnecessary));
         */
         template<class type>
-        void writeString(const type* string, unsigned long long expectedSize = 0, int errorCode = defaultErrorCode)
+        void writeString(const type* string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
         {
             if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
@@ -633,7 +634,7 @@ struct fileStream
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
             int savedError = privateError;
-            unsigned long long stringPlace = 0;
+            size_t stringPlace = 0;
             while(string[stringPlace] != '\0')
             {
                 writeCharacter<type>(string[stringPlace]);
@@ -652,7 +653,7 @@ struct fileStream
         *fileStreamName.writeLine<type>(string to add, expected size(unnecessary));
         */
         template<class type>
-        void writeLine(const type* string, unsigned long long expectedSize = 0, int errorCode = defaultErrorCode)
+        void writeLine(const type* string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
         {
             if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
@@ -661,7 +662,7 @@ struct fileStream
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
             int savedError = privateError;
-            unsigned long long stringPlace = 0;
+            size_t stringPlace = 0;
             while(string[stringPlace] != '\0')
             {
                 writeCharacter<type>(string[stringPlace]);
@@ -744,7 +745,7 @@ struct fileStream
         }
 
         ///Returns size of a file.
-        unsigned long long size(int errorCode = defaultErrorCode)
+        size_t size(int errorCode = defaultErrorCode)
         {
             if(privateMode == 3 or !isStreamOpen())
             {
@@ -752,9 +753,9 @@ struct fileStream
                 return 0;
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            unsigned long long current = ftell(file);
+            size_t current = ftell(file);
             fseek(file, 0, SEEK_END);
-            unsigned long long returned = ftell(file);
+            size_t returned = ftell(file);
             fseek(file, current, SEEK_SET);
             if(isError())
             {
@@ -852,7 +853,7 @@ struct fileStream
         *fileStreamName.readBlock<type of read value>(number of elements);
         */
         template<class type>
-        type* readBlock(const unsigned long long &count, unsigned long long errorCode = defaultErrorCode)
+        type* readBlock(const size_t &count, size_t errorCode = defaultErrorCode)
         {
             if(count == 0)
             {
@@ -866,7 +867,7 @@ struct fileStream
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
             type* pointer = new type[count];
-            unsigned long long result = fread(pointer, sizeof(type), count, file);
+            size_t result = fread(pointer, sizeof(type), count, file);
             if(isError())
             {
                 privateError = extractError();
@@ -890,28 +891,28 @@ struct fileStream
         *fileStreamName.readVariable<type of read value>();
         */
         template<class type>
-        type readVariable(unsigned long long errorCode = defaultErrorCode)
+        type readVariable(size_t errorCode = defaultErrorCode)
         {
             if(!isValidForBinaryReading())
             {
                 privateError = errorCode;
-                return 0;
+                return {};
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
             type variable;
-            unsigned long long result = fread(&variable, sizeof(type), 1, file);
+            size_t result = fread(&variable, sizeof(type), 1, file);
             if(isError())
             {
                 privateError = extractError();
                 clearErrorPointing();
-                return 0;
+                return {};
             }
             updateEndOfFile();
             if(result == 0 or isError())
             {
                 privateError = extractError();
                 clearErrorPointing();
-                return 0;
+                return {};
             }
             return variable;
         }
@@ -921,7 +922,7 @@ struct fileStream
         *fileStreamName.writeBlock<type of written value, unnecessary>(pointer to written element, number of elements);
         */
         template<class type>
-        void writeBlock(type* pointer, unsigned long long count, unsigned long long errorCode = defaultErrorCode)
+        void writeBlock(type* pointer, size_t count, size_t errorCode = defaultErrorCode)
         {
             if(!isValidForBinaryWriting())
             {
@@ -929,7 +930,7 @@ struct fileStream
                 return;
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            unsigned long long result = fwrite(pointer, sizeof(type), count, file);
+            size_t result = fwrite(pointer, sizeof(type), count, file);
             if(isError())
             {
                 privateError = extractError();
@@ -955,7 +956,7 @@ struct fileStream
         *fileStreamName.writeVariable<type of written value, unnecessary>(written element);
         */
         template<class type>
-        void writeVariable(const type &variable, unsigned long long errorCode = defaultErrorCode)
+        void writeVariable(const type &variable, size_t errorCode = defaultErrorCode)
         {
             if(!isValidForBinaryWriting())
             {
@@ -963,7 +964,7 @@ struct fileStream
                 return;
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            unsigned long long result = fwrite(&variable, sizeof(type), 1, file);
+            size_t result = fwrite(&variable, sizeof(type), 1, file);
             if(isError())
             {
                 privateError = extractError();

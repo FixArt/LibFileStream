@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cerrno>
 #include <climits>
+#include <string>
 //#include <sys/param.h>
 //#include <iostream>
 
@@ -40,7 +41,7 @@ struct fileStream
 
         //Checks whenever it contains zero given its real or expected size.
         template<class type>
-        static bool isStringZeroTerminated(const type* string, size_t expectedSize = 0)
+        static bool isStringZeroTerminated(const type* const& string, size_t expectedSize = 0)
         {
             for(size_t i = 0; i < expectedSize; ++i)
             {
@@ -88,7 +89,7 @@ struct fileStream
 
         ///Returns length of the string.
         template<class type>
-        static size_t stringLength(const type* string)
+        static size_t stringLength(const type* const& string)
         {
             //for(size_t i = 0; string[i] != '\0'; ++i)
             size_t i = 0;
@@ -101,7 +102,7 @@ struct fileStream
 
         ///Returns copy of string.
         template<class type>
-        type* stringCopy(const type* string)
+        type* stringCopy(const type* const& string)
         {
             type* newString = new type[stringLength(string) + 1];
             copyList<type>(string, newString, stringLength(string) + 1);
@@ -210,7 +211,7 @@ struct fileStream
 
         //Checks whenever strings are same.
         template<class type>
-        static bool isStringsEqual(const type* string1, const type* string2)
+        static bool isStringsEqual(const type* const& string1, const type* const& string2)
         {
             if(stringLength(string1) != stringLength(string2))
             {
@@ -229,7 +230,8 @@ struct fileStream
         fileStream<path_type>() = default;
 
         ///Default error code of all functions.
-        const static unsigned short defaultErrorCode = 1;
+        const static unsigned short defaultErrorCode = 112;
+        
         //const unsigned short defaultErrorCode = 1; //Invalid use of non-static data member 'defaultErrorCode' (non static? Hm...)
 
         ///Opened file mode. 1 = read; 2 = write; 3 = append; 4 = read and write, but file must exist; 5 = read and write; 6 = read and append. Uneditable from outside.
@@ -625,7 +627,7 @@ struct fileStream
         *fileStreamName.writeString<type>(string to add, expected size(unnecessary));
         */
         template<class type>
-        void writeString(const type* string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
+        void writeString(const type* const& string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
         {
             if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
@@ -653,7 +655,7 @@ struct fileStream
         *fileStreamName.writeLine<type>(string to add, expected size(unnecessary));
         */
         template<class type>
-        void writeLine(const type* string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
+        void writeLine(const type* const& string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
         {
             if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
@@ -772,7 +774,7 @@ struct fileStream
         *fileStreamName.getBtFormat<type>(format, pointers to all variables to which result will be written);
         */
         template<class type, class... Arguments>
-        int getByFormat(const type* const format, Arguments*... arguments)
+        int getByFormat(const type* const& format, Arguments*... arguments)
         {
             //if(!isValidForTextReading())
             if(!isValidForReading())
@@ -813,7 +815,7 @@ struct fileStream
         *fileStreamName.writeByFormat<type>(format, pointers to all variables values of which will be written);
         */
         template<class type, class... Arguments>
-        int writeByFormat(const type* const format, Arguments... arguments)
+        int writeByFormat(const type* const& format, Arguments... arguments)
         {
             //if(!isValidForTextWriting())
             if(!isValidForWriting())
@@ -993,13 +995,43 @@ struct fileStream
 
         ///Opens new file stream with the same parameters as old.
         template<class type>
-        fileStream<type> operator=(const fileStream<type>& file)
+        fileStream<type>& operator=(const fileStream<type>& file)
         {
             close();
             if(file.path != nullptr and file.mode != 0)
             {
                 open(file.path, file.mode, file.binary);
             }
+            return *this;
+        }
+        
+        fileStream& operator<<(const char* const& written)
+        {
+            writeString(written);
+            return *this;
+        }
+        
+        fileStream& operator<<(const std::string& written)
+        {
+            writeString(written.c_str());
+            return *this;
+        }
+        
+        fileStream& operator>>(std::string& written)
+        {
+            if(!isValidForReading())
+            {
+                return *this;
+            }
+            // const char divisionChars[] = "\n \t";
+            written.clear();
+            // char read = '\0';
+            // while(!end && !(read == '\n' || read == ' ' || read == '\t'))
+            // {
+            //     read = getCharacter();
+            //     written.push_back(read);
+            // }
+            for(char read = '\0'; !(read == '\n' || read == ' ' || read == '\t'); read = getCharacter()) written.push_back(read);
             return *this;
         }
 };

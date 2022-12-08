@@ -2,6 +2,7 @@
 #include <cerrno>
 #include <climits>
 #include <string>
+#include <type_traits>
 //#include <sys/param.h>
 //#include <iostream>
 
@@ -40,8 +41,8 @@ struct fileStream
         //Functions from other libraries.
 
         //Checks whenever it contains zero given its real or expected size.
-        template<class type>
-        static bool isStringZeroTerminated(const type* const& string, size_t expectedSize = 0)
+        template<class char_type = char>
+        static bool isStringZeroTerminated(const char_type* const& string, size_t expectedSize = 0)
         {
             for(size_t i = 0; i < expectedSize; ++i)
             {
@@ -54,10 +55,10 @@ struct fileStream
         }
 
         //Protects from "(Function name) doesn't handle strings that are not '\0'-terminated; if given one it may perform an over-read (it could cause a crash if unprotected) (CWE-126)."
-        template<class type>
-        static void ensureZeroTerminated(type* string, size_t expectedSize = 0)
+        template<class char_type = char>
+        static void ensureZeroTerminated(char_type* string, size_t expectedSize = 0)
         {
-            if(not isStringZeroTerminated<type>(string, expectedSize))
+            if(not isStringZeroTerminated<char_type>(string, expectedSize))
             {
                 string[expectedSize - 1] = '\0';
             }
@@ -151,6 +152,23 @@ struct fileStream
             privateEndOfFile = (privateEndOfFile)?(true):(feof(file));
         }
 
+        public:
+
+        fileStream(fileStream&& movedFrom)
+        {
+            close();
+            file = movedFrom.file;
+            movedFrom.file = nullptr;
+            privateMode = movedFrom.privateMode;
+            movedFrom.privateMode = 0;
+            privateBinaryMode = movedFrom.privateBinaryMode;
+            movedFrom.privateBinaryMode = false;
+            privateEndOfFile = movedFrom.privateEndOfFile;
+            movedFrom.privateEndOfFile = false;
+            privatePath = movedFrom.privatePath;
+            movedFrom.privatePath = nullptr;
+        }
+
         ///Checks whenever stream is open.
         bool isStreamOpen() const
         {
@@ -184,7 +202,7 @@ struct fileStream
         ///Checks whenever stream is valid for binary reading.
         bool isValidForBinaryReading() const
         {
-            return file != nullptr and !privateEndOfFile and (privateMode == 1 or (privateMode >= 4 and privateMode <= 6)) and privateBinaryMode;
+            return (file != nullptr) and (!privateEndOfFile) and (privateMode == 1 or (privateMode >= 4 and privateMode <= 6)) and privateBinaryMode;
         }
 
         ///Checks whenever stream is valid for binary writing.
@@ -192,6 +210,8 @@ struct fileStream
         {
             return file != nullptr and (privateMode >= 2 and privateMode <= 6) and privateBinaryMode;
         }
+
+        private:
 
         //Checks whenever two lists are equal.
         template<class type>
@@ -221,7 +241,7 @@ struct fileStream
         }
 
         ///Disallow unauthorized creation of file stream copies.
-        fileStream<path_type>( const fileStream<path_type>&);
+        fileStream<path_type>( const fileStream<path_type>&) = delete;
 
     public:
         //Data, available to anything outside structure.
@@ -337,7 +357,7 @@ struct fileStream
         *6 - read and append.
         *To choose whenever or not use binary mode use third bool parameter.
         */
-        void open(const path_type* const choosenPath, unsigned short openingMode, bool binaryMode = false, int errorCode = defaultErrorCode)
+        void open(const path_type* const& choosenPath, unsigned short openingMode, bool binaryMode = false, int errorCode = defaultErrorCode)
         {
             //ensureZeroTerminated(choosenPath, PATH_MAX); ///Since no legal path bigger than this constant exists, we can succesfully cut any path bigger than this.
             if(!isStringZeroTerminated(choosenPath, PATH_MAX / (sizeof(path_type) * 8)))
@@ -379,6 +399,21 @@ struct fileStream
             privateMode = openingMode;
             privatePath = stringCopy<path_type>(choosenPath);
             updateEndOfFile();
+        }
+
+        /**Opens stream with choosen parameters.
+        *Opening mode supports one of the 6 values. Those are:
+        *1 - read only;
+        *2 - write only;
+        *3 - append only;
+        *4 - read and write, but file should exist;
+        *5 - read and write, but file will be created;
+        *6 - read and append.
+        *To choose whenever or not use binary mode use third bool parameter.
+        */
+        fileStream(const path_type* const& choosenPath, unsigned short openingMode, bool binaryMode = false, int errorCode = defaultErrorCode)
+        {
+            open(choosenPath, openingMode, binaryMode, errorCode);
         }
 
         /**Closes stream. No parameters needed.
@@ -444,14 +479,16 @@ struct fileStream
             }
             privateBinaryMode = binaryMode;
             privateMode = openingMode;
+            privateEndOfFile = false;
+            updateEndOfFile();
         }
 
         /**Function to read character, which supports binary mode.
         *You can specify type for read characters(char, char16_t, char32_t) as following:
         *fileStreamName.getCharacter<type>();
         */
-        template<class type = path_type>
-        type getCharacter(int errorCode = defaultErrorCode)
+        template<class char_type = char>
+        char_type getCharacter(int errorCode = defaultErrorCode)
         {
             if(!isValidForReading())
             {
@@ -461,7 +498,7 @@ struct fileStream
             clearErrorPointing(); //Ensure that only own reports will be reported.
             if(privateBinaryMode)
             {
-                type data = readVariable<type>();
+                char_type data = readVariable<char_type>();
                 privateError = extractError();
                 if(isError())
                 {
@@ -474,7 +511,7 @@ struct fileStream
             }
             else
             {
-                type character = fgetc(file);
+                char_type character = fgetc(file);
                 if(isError())
                 {
                     privateError = extractError();
@@ -490,8 +527,8 @@ struct fileStream
         *You can specify type for read characters(char, char16_t, char32_t) as following:
         *fileStreamName.getString<type>();
         */
-        template<class type = path_type>
-        type* getString(size_t neededSize, int errorCode = defaultErrorCode)
+        template<class char_type = char>
+        char_type* getString(size_t neededSize, int errorCode = defaultErrorCode)
         {
             if(!isValidForReading())
             {
@@ -499,11 +536,11 @@ struct fileStream
                 return "";
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            type* line = nullptr;
+            char_type* line = nullptr;
             size_t stringSize = 0;
             for(size_t i = 0; i < neededSize and !privateEndOfFile; ++i)
             {
-                type checkedCharacter = getCharacter<type>();
+                char_type checkedCharacter = getCharacter<char_type>();
                 if(checkedCharacter == '\0')
                 {
                     //privateError = errorCode; //Error already tracked.
@@ -521,8 +558,8 @@ struct fileStream
         *You can specify type for read characters(char, char16_t, char32_t) as following:
         *fileStreamName.getLine<type>();
         */
-        template<class type = path_type>
-        type* getLine(int errorCode = defaultErrorCode)
+        template<class char_type = char>
+        char_type* getLine(int errorCode = defaultErrorCode)
         {
             if(!isValidForReading())
             {
@@ -530,11 +567,11 @@ struct fileStream
                 return "";
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            type* line = nullptr;
+            char_type* line = nullptr;
             size_t stringSize = 0;
             while(true)
             {
-                type checkedCharacter = getCharacter<type>();
+                char_type checkedCharacter = getCharacter<char_type>();
                 if(checkedCharacter == '\0')
                 {
                     //privateError = errorCode; //Error already tracked.
@@ -557,8 +594,8 @@ struct fileStream
         *You can specify type for read characters(char, char16_t, char32_t) as following:
         *fileStreamName.getFile<type>();
         */
-        template<class type = path_type>
-        type* getFile(int errorCode = defaultErrorCode)
+        template<class char_type = char>
+        char_type* getFile(int errorCode = defaultErrorCode)
         {
             if(!isValidForReading())
             {
@@ -566,11 +603,11 @@ struct fileStream
                 return "";
             }
             clearErrorPointing(); //Ensure that only own reports will be reported.
-            type* line = nullptr;
+            char_type* line = nullptr;
             size_t stringSize = 0;
             while(!privateEndOfFile)
             {
-                type checkedCharacter = getCharacter<type>();
+                char_type checkedCharacter = getCharacter<char_type>();
                 if(checkedCharacter == '\0')
                 {
                     //privateError = errorCode; //Error already tracked.
@@ -589,8 +626,8 @@ struct fileStream
         *The syntax is following:
         *fileStreamName.writeCharacter<type>(character to add);
         */
-        template<class type>
-        void writeCharacter(const type character, int errorCode = defaultErrorCode)
+        template<class char_type = char>
+        void writeCharacter(const char_type character, int errorCode = defaultErrorCode)
         {
             if(!isValidForWriting())
             {
@@ -626,8 +663,8 @@ struct fileStream
         *The syntax is following:
         *fileStreamName.writeString<type>(string to add, expected size(unnecessary));
         */
-        template<class type>
-        void writeString(const type* const& string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
+        template<class char_type = char>
+        void writeString(const char_type* const& string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
         {
             if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
@@ -639,7 +676,7 @@ struct fileStream
             size_t stringPlace = 0;
             while(string[stringPlace] != '\0')
             {
-                writeCharacter<type>(string[stringPlace]);
+                writeCharacter<char_type>(string[stringPlace]);
                 if(privateError != savedError)
                 {
                     return;
@@ -654,8 +691,8 @@ struct fileStream
         *The syntax is following:
         *fileStreamName.writeLine<type>(string to add, expected size(unnecessary));
         */
-        template<class type>
-        void writeLine(const type* const& string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
+        template<class char_type = char>
+        void writeLine(const char_type* const& string, size_t expectedSize = 0, int errorCode = defaultErrorCode)
         {
             if(!isValidForWriting() or (expectedSize != 0 and !isStringZeroTerminated(string, expectedSize)))
             {
@@ -667,7 +704,7 @@ struct fileStream
             size_t stringPlace = 0;
             while(string[stringPlace] != '\0')
             {
-                writeCharacter<type>(string[stringPlace]);
+                writeCharacter<char_type>(string[stringPlace]);
                 if(privateError != savedError)
                 {
                     return;
@@ -735,7 +772,7 @@ struct fileStream
                 case 5: errorCheck = fseek(file, pointer, SEEK_HOLE); break;
                 #endif
             }
-            
+
             if(errorCheck != 0 or isError())
             {
                 privateError = extractError();
@@ -773,8 +810,8 @@ struct fileStream
         *Syntax is following:
         *fileStreamName.getBtFormat<type>(format, pointers to all variables to which result will be written);
         */
-        template<class type, class... Arguments>
-        int getByFormat(const type* const& format, Arguments*... arguments)
+        template<class char_type = char, class... Arguments>
+        int getByFormat(const char_type* const& format, Arguments*... arguments)
         {
             //if(!isValidForTextReading())
             if(!isValidForReading())
@@ -814,8 +851,8 @@ struct fileStream
         *Syntax is following:
         *fileStreamName.writeByFormat<type>(format, pointers to all variables values of which will be written);
         */
-        template<class type, class... Arguments>
-        int writeByFormat(const type* const& format, Arguments... arguments)
+        template<class char_type = char, class... Arguments>
+        int writeByFormat(const char_type* const& format, Arguments... arguments)
         {
             //if(!isValidForTextWriting())
             if(!isValidForWriting())
@@ -850,11 +887,11 @@ struct fileStream
             }
         }
 
-        /**Function which reads in binary.
+        /**Function which reads in binary. Enforces for the type to be trivially copyable.
         *Syntax is following:
         *fileStreamName.readBlock<type of read value>(number of elements);
         */
-        template<class type>
+        template<class type, typename = typename std::enable_if<std::is_trivially_copyable<type>::value>>
         type* readBlock(const size_t &count, size_t errorCode = defaultErrorCode)
         {
             if(count == 0)
@@ -888,11 +925,11 @@ struct fileStream
             return pointer;
         }
 
-        /**Function which reads in binary.
+        /**Function which reads in binary. Enforces for the type to be trivially copyable.
         *Syntax is following:
         *fileStreamName.readVariable<type of read value>();
         */
-        template<class type>
+        template<class type, typename = typename std::enable_if<std::is_trivially_copyable<type>::value>>
         type readVariable(size_t errorCode = defaultErrorCode)
         {
             if(!isValidForBinaryReading())
@@ -919,11 +956,11 @@ struct fileStream
             return variable;
         }
 
-        /**Function which reads in binary.
+        /**Function which writes in binary. Enforces for the type to be trivially copyable.
         *Syntax is following:
         *fileStreamName.writeBlock<type of written value, unnecessary>(pointer to written element, number of elements);
         */
-        template<class type>
+        template<class type, typename = typename std::enable_if<std::is_trivially_copyable<type>::value>>
         void writeBlock(type* pointer, size_t count, size_t errorCode = defaultErrorCode)
         {
             if(!isValidForBinaryWriting())
@@ -953,11 +990,11 @@ struct fileStream
             updateEndOfFile();
         }
 
-        /**Function which reads in binary.
+        /**Function which writes in binary. Enforces for the type to be trivially copyable.
         *Syntax is following:
         *fileStreamName.writeVariable<type of written value, unnecessary>(written element);
         */
-        template<class type>
+        template<class type, typename = typename std::enable_if<std::is_trivially_copyable<type>::value>>
         void writeVariable(const type &variable, size_t errorCode = defaultErrorCode)
         {
             if(!isValidForBinaryWriting())
@@ -1004,34 +1041,62 @@ struct fileStream
             }
             return *this;
         }
-        
-        fileStream& operator<<(const char* const& written)
+
+        template<typename type, typename = typename std::enable_if<std::is_trivial<type>::value && !std::is_same<type, std::string>::value>>
+        fileStream& operator<<(const type& written)
+        {
+            writeVariable(written);
+            return *this;
+        }
+
+        template<typename type, typename = typename std::enable_if<std::is_trivial<type>::value && !std::is_same<type, std::string>::value>>
+        fileStream& operator>>(type& read)
+        {
+            if(!isValidForBinaryReading())
+            {
+                privateError = defaultErrorCode;
+                read = {};
+                return *this;
+            }
+            read = readVariable<type>();
+            return *this;
+        }
+
+        // fileStream& operator>>(std::string& read)
+        // {
+            
+        // }
+
+        template<typename type>
+        fileStream& operator<<(const type* const& written)
         {
             writeString(written);
             return *this;
         }
-        
+
+        // template<>
         fileStream& operator<<(const std::string& written)
         {
             writeString(written.c_str());
             return *this;
         }
-        
-        fileStream& operator>>(std::string& written)
+
+        // template<>
+        fileStream& operator>>(std::string& read)
         {
             if(!isValidForReading())
             {
                 return *this;
             }
             // const char divisionChars[] = "\n \t";
-            written.clear();
+            read.clear();
             // char read = '\0';
             // while(!end && !(read == '\n' || read == ' ' || read == '\t'))
             // {
             //     read = getCharacter();
             //     written.push_back(read);
             // }
-            for(char read = '\0'; !(read == '\n' || read == ' ' || read == '\t'); read = getCharacter()) written.push_back(read);
+            for(char current = '\0'; !(current == '\n' || current == ' ' || current == '\t'); read = getCharacter()) read.push_back(current);
             return *this;
         }
 };
